@@ -36,4 +36,4 @@ def get_credentials():
 if __name__ == "__main__":
     # La cadena de prueba actual ya contiene tus formatos de Upstox
     generate_key()
-   
+    encrypt_credentials("API_KEY=01cdf43d-dae4-414e-bd8c-ebf621eaf3ab,SECRET_KEY=8te76q8el1,TOKEN=eyJ0eXAiOiJKV1QiLCJrZXlfaWQiOiJza192MS4wIiwiYWxnIjoiSFMyNTYifQ.eyJzdWIiOiJBVjMwNjgiLCJqdGkiOiI2YTM1MDgyNjk5MGIxODc2ZTIyZmU1NTUiLCJpc011bHRpQ2xpZW50IjpmYWxzZSwiaXNQbHVzUGxhbiI6dHJ1ZSwiaWF0IjoxNzgxODYwMzkwLCJpc3MiOiJ1ZGFwaS1nYXRld2F5LXNlcnZpY2UiLCJleHAiOjE3ODE5MDY0MDB9.6hgaffhTlE3YnhincGVGwKD4WElIZOLgnUPFJZXTDlA")
