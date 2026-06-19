@@ -6,3 +6,4 @@ aiohttp
 requests
 pandas
 protobuf
+grpcio-tools

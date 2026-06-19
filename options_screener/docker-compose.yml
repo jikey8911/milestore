@@ -28,4 +28,4 @@ services:
     environment:
       - ENV=development
       - PYTHONUNBUFFERED=1
-    command: sh -c "protoc --python_out=./src/data --proto_path=./src/data ./src/data/MarketDataFeed.proto && python src/main.py"
+    command: sh -c "python -m grpc_tools.protoc -I=./src/data --python_out=./src/data ./src/data/MarketDataFeed.proto && python src/main.py"
