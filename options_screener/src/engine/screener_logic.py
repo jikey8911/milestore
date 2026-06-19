@@ -52,29 +52,24 @@ class OptionsScreenerEngine:
                 if price_change_pct > 0:
                     mismatch_ratio = vol_change_pct / price_change_pct
                     
-                    # DISPARADOR DE ALERTA
-                    if mismatch_ratio >= self.parameters["vol_price_mismatch_threshold"]:
-                        print(f"🚨 [OPORTUNIDAD DETECTADA] {instrument}")
-                        print(f"    ├─ Ratio Anomalía : {mismatch_ratio:.2f}x (Umbral: {self.parameters['vol_price_mismatch_threshold']})")
-                        print(f"    ├─ Precio         : ₹{ltp} (Δ {price_change_pct:.4f}%)")
-                        print(f"    └─ Volumen        : {volume} (Δ {vol_change_pct:.4f}%)")
-                        print("-" * 50)
-                        
-                        if self.on_alert_callback:
-                            import asyncio
-                            from datetime import datetime
-                            # Crear el payload
-                            payload = {
-                                "time": datetime.now().strftime("%H:%M:%S"),
-                                "instrument": instrument,
-                                "ratio": f"{mismatch_ratio:.2f}x"
-                            }
-                            # Como on_alert_callback es async (broadcast_to_web), la creamos como task
-                            try:
-                                loop = asyncio.get_running_loop()
-                                loop.create_task(self.on_alert_callback(payload))
-                            except RuntimeError:
-                                pass # Si no hay loop, no intentamos llamar al callback
+                    # ENVIAR SIEMPRE AL CALLBACK, EL ROUTER DECIDIRÁ SI LO FILTRA
+                    if self.on_alert_callback:
+                        import asyncio
+                        from datetime import datetime
+                        # Añadimos los valores numéricos crudos al payload para que el Router los pueda filtrar
+                        payload = {
+                            "time": datetime.now().strftime("%H:%M:%S"),
+                            "instrument": instrument,
+                            "ratio_value": mismatch_ratio, # Valor numérico crudo
+                            "ratio": f"{mismatch_ratio:.2f}x",
+                            "volume": volume,
+                            "price": ltp
+                        }
+                        try:
+                            loop = asyncio.get_running_loop()
+                            loop.create_task(self.on_alert_callback(payload))
+                        except RuntimeError:
+                            pass
 
 
         # 3. Guardar el estado actual para el siguiente tick

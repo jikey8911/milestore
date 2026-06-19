@@ -21,17 +21,43 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
-active_web_clients = []
+# ==========================================
+# 1. VARIABLES GLOBALES Y CACHÉ
+# ==========================================
+# Cambiamos la lista por un diccionario para guardar los parámetros de CADA cliente
+active_web_clients = {} # Formato: {websocket_obj: dict_parametros}
 
+# CACHÉ INICIAL: Guardamos las últimas 100 alertas globales del mercado
+recent_alerts_cache = []
+
+# ¡AQUÍ ESTÁ LA CORRECCIÓN!: Instanciamos el motor a nivel global
+engine = OptionsScreenerEngine()
+
+# ==========================================
+# 2. FUNCIÓN DE DISTRIBUCIÓN (ROUTER WS)
+# ==========================================
 async def broadcast_to_web(data: dict):
-    for client in active_web_clients:
-        try:
-            await client.send_json(data)
-        except Exception:
-            active_web_clients.remove(client)
+    # 1. Guardar en el historial global
+    recent_alerts_cache.insert(0, data)
+    if len(recent_alerts_cache) > 100:
+        recent_alerts_cache.pop()
 
-engine = OptionsScreenerEngine(on_alert_callback=broadcast_to_web)
+    # 2. Distribuir a los clientes conectados según SUS PROPIOS parámetros
+    for ws, params in list(active_web_clients.items()):
+        # Aplicamos el filtro en la capa de distribución
+        if data["volume"] >= params.get("min_volume", 5000) and \
+           data["ratio_value"] >= params.get("vol_price_mismatch_threshold", 2.0):
+            try:
+                await ws.send_json(data)
+            except Exception:
+                del active_web_clients[ws]
 
+# Conectamos la salida del motor a nuestra función distribuidora
+engine.on_alert_callback = broadcast_to_web
+
+# ==========================================
+# 3. INICIO DEL BACKEND Y MOTOR DE TRADING
+# ==========================================
 async def start_trading_engine():
     try:
         session = await connect_upstox()
@@ -61,6 +87,7 @@ async def start_trading_engine():
         
         if target_instruments:
             print(f"\n🚀 Motor Backend iniciando escaneo masivo de {len(target_instruments)} contratos totales.")
+            # Como engine ya es global, el websocket_client puede consumirlo sin error
             ws_client = UpstoxWebSocketClient(engine=engine)
             await ws_client.connect_and_listen(instrument_keys=target_instruments)
         else:
@@ -73,16 +100,35 @@ async def start_trading_engine():
 async def startup_event():
     asyncio.create_task(start_trading_engine())
 
+# ==========================================
+# 4. WEBSOCKET ENDPOINT (CONEXIÓN APP MÓVIL)
+# ==========================================
 @app.websocket("/ws/dashboard")
 async def websocket_dashboard(websocket: WebSocket):
     await websocket.accept()
-    active_web_clients.append(websocket)
+    
+    # 1. Asignar parámetros por defecto a este cliente específico
+    active_web_clients[websocket] = {
+        "min_volume": 5000, 
+        "vol_price_mismatch_threshold": 2.0
+    }
+    
+    # 2. CARGA DE DATOS INICIALES: Al conectarse, le enviamos el historial que cumpla sus parámetros
+    for alert in reversed(recent_alerts_cache):
+        if alert["volume"] >= active_web_clients[websocket]["min_volume"] and \
+           alert["ratio_value"] >= active_web_clients[websocket]["vol_price_mismatch_threshold"]:
+            await websocket.send_json(alert)
+
     try:
         while True:
+            # 3. Actualizar parámetros EN CALIENTE solo para este cliente
             new_params = await websocket.receive_json()
-            engine.update_parameters(new_params)
+            active_web_clients[websocket].update(new_params)
+            print(f"Parámetros actualizados para cliente: {active_web_clients[websocket]}")
+            
     except WebSocketDisconnect:
-        active_web_clients.remove(websocket)
+        if websocket in active_web_clients:
+            del active_web_clients[websocket]
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=False)
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
