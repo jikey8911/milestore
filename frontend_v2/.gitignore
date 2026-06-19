@@ -7,3 +7,5 @@ yarn-error.*
 expo-server.log
 expo-server.err.log
 frontend_v2/.expo-export-check/
+venv/
+.venv/
