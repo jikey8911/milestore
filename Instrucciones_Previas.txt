@@ -1,0 +1,12 @@
+Requisitos previos:
+
+1. Instalar Docker Desktop.
+2. Instalar Node.js LTS.
+3. Instalar Tailscale e iniciar sesion en la misma tailnet usada por el backend.
+4. Verificar que el backend tenga credenciales Upstox vigentes antes de esperar datos en vivo.
+
+Arranque rapido:
+
+1. Backend: abrir options_screener/start-backend.bat en Windows o ejecutar ./start-backend.sh en Mac/Linux.
+2. Frontend movil: abrir frontend_v2/start-mobile.bat en Windows o ejecutar ./start-mobile.sh en Mac/Linux.
+3. En Expo Go, escanear el QR y verificar que el host sea 100.125.209.0:8000.

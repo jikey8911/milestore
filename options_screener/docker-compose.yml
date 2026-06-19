@@ -1,0 +1,31 @@
+services:
+  tailscale:
+    image: tailscale/tailscale:latest
+    hostname: ${TS_HOSTNAME:-options-screener}
+    environment:
+      - TS_AUTHKEY=${TS_AUTHKEY:-}
+      - TS_HOSTNAME=${TS_HOSTNAME:-options-screener}
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_AUTH_ONCE=true
+    volumes:
+      - ./tailscale-state:/var/lib/tailscale
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  screener:
+    build: .
+    network_mode: service:tailscale
+    depends_on:
+      - tailscale
+    develop:
+      watch:
+        - action: sync
+          path: ./src
+          target: /app/src
+        - action: rebuild
+          path: requirements.txt
+    environment:
+      - ENV=development
+      - PYTHONUNBUFFERED=1
+    command: sh -c "protoc --python_out=./src/data --proto_path=./src/data ./src/data/MarketDataFeed.proto && python src/main.py"

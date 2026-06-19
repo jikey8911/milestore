@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+cryptography
+python-dotenv
+aiohttp
+requests
+pandas
+protobuf

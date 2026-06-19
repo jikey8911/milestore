@@ -1,0 +1,8 @@
+node_modules/
+.expo/
+dist/
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+expo-server.log
+expo-server.err.log
